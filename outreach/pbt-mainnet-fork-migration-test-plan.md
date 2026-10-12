@@ -13,7 +13,7 @@
 Reuse the fork after Glamsterdam testing. Upgrade execution clients, then schedule two points:
 
 - **`N` — snapshot anchor:** preserve the state at this block and wait for finality before conversion.
-- **`S` — PBT activation:** schedule only after all clients have caught up and passed migration checks.
+- **`S` — PBT activation:** configure a provisional future timestamp before starting migration; confirm readiness before it is reached. Activate only after all clients have caught up and passed migration checks.
 
 Leave both unset during Glamsterdam testing. One dedicated Erigon node exports the preimages and generates a PBT snapshot from the finalized state at `N`. ethpandaops distributes both artifacts to the remaining nodes. Each receiving node verifies the artifacts against its preserved MPT state at `N`, imports the PBT snapshot, and replays block-level access lists (BALs) from `N + 1` to catch up. Test both trees under load before activating PBT.
 
@@ -89,10 +89,13 @@ geth --datadir <datadir> bintrie import <snapshot> <preimages> <N>
 
 If the PBT namespace already contains state from an earlier import or bootstrap, add `--force` after `bintrie import` to replace it. This is unnecessary for a clean namespace.
 
-**Nethermind:** restart with the artifact paths and anchor. Import runs in the background. [Configuration](https://github.com/NethermindEth/nethermind/blob/91ba4d29/src/Nethermind/Nethermind.State.Pbt/IPbtConfig.cs).
+**Nethermind:** before restarting, update the fork's chainspec with the provisional PBT activation Unix timestamp (`S`, in seconds): use `config.binaryTrieTime` in a Geth-style genesis, or `params.eip8347TransitionTimestamp` in a Nethermind/Parity-style chainspec. The timestamp must be after genesis and the snapshot anchor `N`, and far enough in the future to complete import, catch-up, and the testing window. This selects MPT → PBT migration mode; the PBT flags and artifact paths alone do not select it. EIP-7928 (BALs) and EIP-6780 must activate before `S`. [Mode selection](https://github.com/NethermindEth/nethermind/blob/91ba4d29/src/Nethermind/Nethermind.State.Pbt/PbtPlugin.cs), [migration prerequisites](https://github.com/NethermindEth/nethermind/blob/91ba4d29/src/Nethermind/Nethermind.State.Pbt/PbtMigrationConfigValidator.cs), [Geth-style timestamp mapping](https://github.com/NethermindEth/nethermind/blob/91ba4d29/src/Nethermind/Nethermind.Specs/ChainSpecStyle/GethGenesisLoader.cs).
+
+Restart with that chainspec, the artifact paths, and the anchor. Import runs in the background. [Configuration](https://github.com/NethermindEth/nethermind/blob/91ba4d29/src/Nethermind/Nethermind.State.Pbt/IPbtConfig.cs).
 
 ```sh
 nethermind --config <node-config> \
+  --Init.ChainSpecPath=<updated-chainspec> \
   --Pbt.Enabled=true --FlatDb.Enabled=true --FlatDb.Layout=Flat \
   --Pbt.MigrationSnapshotPath=<snapshot> --Pbt.MigrationPreimagesPath=<preimages> \
   --Pbt.MigrationAnchor=<N> --Sync.FastSync=false
@@ -141,7 +144,7 @@ The production consumer procedure is **TBD**; verification alone does not import
 The commands above use the source tested in the October 5 Hive run and the Hive shims. Notes:
 
 - Replace placeholders with the rehearsal paths and anchor, keeping the node's normal network, Engine API, and peer configuration.
-- Migration requires `binaryTrieTime` in the chain configuration, which sets the Unix timestamp for PBT activation (`S`). This should be set to 2 weeks after `N`.
+- Configure the same provisional PBT activation timestamp (`S`) across execution clients before starting migration, using each client's supported chain-configuration field (see the Nethermind formats above). Allow for generation, distribution, verification/import, and catch-up, plus at least 2 weeks of BAL replay and maintaining both trees before activation; do not simply set `S` to 2 weeks after `N`. Agree a client-approved procedure to postpone `S` across the network before it is reached if readiness checks or the testing window are incomplete.
 
 ### Remaining preparation
 
@@ -150,13 +153,13 @@ The commands above use the source tested in the October 5 Hive run and the Hive 
 - [X] **Carlos / State team:** update the PBT devnet Kurtosis package and Hive fixtures to consume generated preimages and PBT snapshots. Run a small populated-state migration covering representative accounts, storage, and delegations through verification/import → BAL replay → activation across clients.
 - [X] **Artem / Erigon:** provide sample preimages and a PBT snapshot for cross-client import testing.
 - [ ] **Carlos and client teams:** benchmark conversion separately on mainnet-scale state and share timing/resource results with ethpandaops.
-- [ ] **Maria / ethpandaops:** align on `N`, the dedicated converter, artifact hosting and download procedures, and a coordinated consumer restart plan that preserves network finality.
+- [X] **Maria / ethpandaops:** align on `N`, the dedicated converter, artifact hosting and download procedures, and a coordinated consumer restart plan that preserves network finality.
 
 ## Run process
 
-Throughout the run, ethpandaops collects Grafana/Prometheus data, client logs, `/proc` metrics, and other available host/hardware telemetry to track:
+Throughout the run, ethpandaops collects resource-usage  the following metrics:
 
-- **Resource usage:** CPU load, memory pressure, disk space and I/O, and network usage.
+- **Resource usage:** CPU utilization and load, memory availability and swap usage, filesystem space, disk I/O, and network traffic. This is collected through Prometheus' [node_exporter](https://github.com/prometheus/node_exporter).
 - **Time per phase:** generation, upload, download, verification, import, and BAL replay, measured separately.
 - **Live network performance:** block-processing latency, head lag, and validator participation, especially during concurrent snapshot verification/import.
 
@@ -165,9 +168,9 @@ Throughout the run, ethpandaops collects Grafana/Prometheus data, client logs, `
 | **1. Prepare** | Client teams supply qualified builds. ethpandaops confirms storage and upgrades execution nodes after Glamsterdam testing. | The network finalizes normally after the upgrade. |
 | **2. Capture `N`** | State team picks the anchor. ethpandaops preserves the Erigon source state and each consumer's MPT state needed to verify at `N`, and retains BALs from `N + 1`. | `N` is finalized; its hash and MPT root are recorded; generator and consumer anchor-state access is verified. |
 | **3. Generate and distribute** | On the dedicated Erigon node, export preimages and generate one PBT snapshot at `N`. Distribute both artifacts across all devnet nodes. | The matching artifact pair is available to all nodes. |
-| **4. Verify and import** | Each client verifies the shared artifacts against its MPT state at `N` and constructs its local PBT database while continuing live block processing. | Every node passes verification and imports the same PBT root at `N`. Network finality and live block processing remain healthy within agreed limits. |
+| **4. Verify and import** | ethpandaops configures the same provisional future `S` across execution clients before starting migration. Each client verifies the shared artifacts against its MPT state at `N` and constructs its local PBT database while continuing live block processing. | Every node passes verification and imports the same PBT root at `N`. Network finality and live block processing remain healthy within agreed limits. |
 | **5. BAL replay** | Nodes run BAL replay from `N + 1` while running normal block processing. PBT roots are recorded. | All clients reach the live head and agree on PBT roots at matching blocks. |
-| **6. Activate `S`** | State team coordinates a future `S`. ethpandaops applies the configuration. | The network finalizes after `S` with all clients agreeing on head and PBT root. |
+| **6. Activate `S`** | Before the configured `S` is reached, State team confirms migration checks and the testing window are complete. If needed, ethpandaops postpones `S` across execution clients using the agreed procedure before the existing timestamp is reached. | The network finalizes after `S` with all clients agreeing on head and PBT root. |
 | **7. Capture client databases** | ethpandaops takes a snapshot of each client's native PBT database for later benchmarking. These are the client-specific database backups, distinct from the shared PBT snapshot used for migration. | A database backup for every client is retained. |
 
 For Glamsterdam testing, ethpandaops plans to deploy the state needed for stateful benchmarks. The client-specific PBT database backups from step 7 should therefore be sufficient to run the same benchmarks on PBT and compare with MPT, without the need for custom spammers during step 5.
