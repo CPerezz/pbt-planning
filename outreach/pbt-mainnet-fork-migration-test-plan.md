@@ -157,7 +157,7 @@ The commands above use the source tested in the October 5 Hive run and the Hive 
 
 ## Run process
 
-Throughout the run, ethpandaops collects resource-usage  the following metrics:
+Throughout the run, ethpandaops collects the following metrics:
 
 - **Resource usage:** CPU utilization and load, memory availability and swap usage, filesystem space, disk I/O, and network traffic. This is collected through Prometheus' [node_exporter](https://github.com/prometheus/node_exporter).
 - **Time per phase:** generation, upload, download, verification, import, and BAL replay, measured separately.
