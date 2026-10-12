@@ -87,6 +87,8 @@ This writes `pbt-snapshot.bin`, `framed.bin` (preimages), and metadata. There is
 geth --datadir <datadir> bintrie import <snapshot> <preimages> <N>
 ```
 
+If the PBT namespace already contains state from an earlier import or bootstrap, add `--force` after `bintrie import` to replace it. This is unnecessary for a clean namespace.
+
 **Nethermind:** restart with the artifact paths and anchor. Import runs in the background. [Configuration](https://github.com/NethermindEth/nethermind/blob/91ba4d29/src/Nethermind/Nethermind.State.Pbt/IPbtConfig.cs).
 
 ```sh
@@ -95,6 +97,8 @@ nethermind --config <node-config> \
   --Pbt.MigrationSnapshotPath=<snapshot> --Pbt.MigrationPreimagesPath=<preimages> \
   --Pbt.MigrationAnchor=<N> --Sync.FastSync=false
 ```
+
+Before re-anchoring, stop the node and clear its native PBT database if it was previously seeded from another anchor.
 
 **Besu:** restart with the artifact paths and the hash of `N`. The migrator verifies and loads the snapshot once the anchor is finalized. [Source](https://github.com/matkt/besu/blob/ba419e5/ethereum/core/src/main/java/org/hyperledger/besu/ethereum/trie/pathbased/bonsai/migration/eip8347/README.md#importing-a-snapshot-into-a-node).
 
