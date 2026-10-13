@@ -113,7 +113,14 @@ besu --data-path=<datadir> --genesis-file=<genesis> \
   --Xpbt-snapshot-anchor-block-hash=<hash-of-N>
 ```
 
-**Erigon:** does not import the shared snapshot. Each node runs the v3 hex commitment (`--experimental.commitment-v3`), converts its own state and attaches the result, then maintains both trees until `S`:
+**Erigon:** verifies the shared snapshot with:
+
+```sh
+erigon --datadir <datadir> snapshots verify-pbt \
+  --snapshot <snapshot> --preimages <preimages> --block <N> --tmpdir <workdir>
+```
+
+It can also import it (`integration commitment import-pbt`, test-only), but in the rehearsal each node runs the v3 hex commitment (`--experimental.commitment-v3`), converts its own state and attaches the result, then maintains both trees until `S`:
 
 ```sh
 integration commitment convert-pbt --datadir=<stopped-datadir> --chain=<chain> \
