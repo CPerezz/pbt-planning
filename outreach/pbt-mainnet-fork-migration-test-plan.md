@@ -67,14 +67,16 @@ Client branches used by [Hive](https://github.com/ethereum/hive/pull/1614):
 <details>
 <summary><strong>Run the Erigon converter</strong></summary>
 
-On the dedicated source datadir preserved at `N`, export both shared artifacts:
+On the dedicated source node, stop at `N` and export both shared artifacts:
 
 ```sh
+STOP_AFTER_BLOCK=<N> erigon <node-options>   # exits after executing N, before committing it
+integration stage_exec --datadir=<source-datadir> --chain=<chain> --block=<N> --experimental.commitment-v3
 erigon snapshots export-pbt --datadir=<source-datadir> --chain=<chain> \
   --out=<artifact-dir> --experimental.bin-commitment.hash=blake3
 ```
 
-This writes `pbt-snapshot.bin`, `framed.bin` (preimages), and metadata. There is no block flag: pin the source at `N` before export and check the recorded block/hash. [More info on export requirements](https://github.com/erigontech/erigon/blob/7b675afb/docs/pbt-migration.md#export).
+This writes `pbt-snapshot.bin`, `framed.bin` (preimages), and metadata. The halted node never sees `N` finalize, so the metadata reads `finalized: false`; check the recorded block hash against the finalized chain. [More info on export requirements](https://github.com/erigontech/erigon/blob/06d0833e3d2/docs/pbt-migration.md#export).
 
 </details>
 
@@ -111,21 +113,16 @@ besu --data-path=<datadir> --genesis-file=<genesis> \
   --Xpbt-snapshot-anchor-block-hash=<hash-of-N>
 ```
 
-**Erigon:** Hive exercises verification with:
+**Erigon:** does not import the shared snapshot. Each node runs the v3 hex commitment (`--experimental.commitment-v3`), converts its own state and attaches the result, then maintains both trees until `S`:
 
 ```sh
-erigon --datadir <datadir> snapshots verify-pbt \
-  --snapshot <snapshot> --preimages <preimages> --block <N> --tmpdir <workdir>
+integration commitment convert-pbt --datadir=<stopped-datadir> --chain=<chain> \
+  --output.datadir=<converted-dir> --keep-hex --experimental.bin-commitment.hash=blake3
+integration commitment attach-pbt --datadir=<datadir> --chain=<chain> \
+  --from=<converted-dir> --experimental.bin-commitment.hash=blake3
 ```
 
-Import is documented as **test-only**, on a stopped v3 hex datadir at the matching block end, with matching snapshot metadata:
-
-```sh
-integration commitment import-pbt --datadir=<datadir> --chain=<chain> \
-  --snapshot=<snapshot> --experimental.bin-commitment.hash=blake3
-```
-
-The production consumer procedure is **TBD**; verification alone does not import the state. [Hive shim](https://github.com/CPerezz/hive/blob/1d1a94c0e4a98ea0871d305364b118f9349c376a/simulators/ethereum/pbt-artifacts/shims/erigon.sh), [import requirements](https://github.com/erigontech/erigon/blob/7b675afb/docs/pbt-migration.md#import-test-only).
+Set `S` only after attach, in the chain configuration or with `--override.binary-trie=<S>` on every start. Before `S`, `debug_migrationProgress` must report `mode: "hex+bin"` and `shadowStopped: false`. [Conversion and attach](https://github.com/erigontech/erigon/blob/06d0833e3d2/docs/pbt-migration.md#conversion-and-publication).
 
 </details>
 
@@ -135,13 +132,13 @@ The production consumer procedure is **TBD**; verification alone does not import
 - **Geth:** restart with `geth --datadir <datadir> --syncmode=full` plus the normal node options. The [migration follower](https://github.com/CPerezz/go-ethereum/blob/fbfd486b/core/bintrie_follower.go) catches up from the imported anchor using BALs.
 - **Nethermind:** keep the consumer command above running. The [BAL follower starts after import](https://github.com/NethermindEth/nethermind/blob/91ba4d29/src/Nethermind/Nethermind.State.Pbt/Steps/InitializePbtMigration.cs); no separate replay command.
 - **Besu:** keep the consumer command above running. The migrator catches up from the anchor using trie logs where available, otherwise BALs; no separate replay command.
-- **Erigon:** snapshot-to-BAL-replay command **TBD**. The [devnet](https://github.com/CPerezz/pbt-devnet/blob/main/args/migration.yaml) uses `COMMITMENT_HEX_BIN=true` from init to maintain both trees; this does not establish replay from an imported snapshot.
+- **Erigon:** no separate replay command; after attach the node re-executes from the conversion point and maintains both trees.
 
 </details>
 
 <br>
 
-The commands above use the source tested in the October 5 Hive run and the Hive shims. Notes:
+The commands above use the source tested in the October 5 Hive run and the Hive shims; the Erigon commands use `binary-trie` at `06d0833e3d2`. Notes:
 
 - Replace placeholders with the rehearsal paths and anchor, keeping the node's normal network, Engine API, and peer configuration.
 - Configure the same provisional PBT activation timestamp (`S`) across execution clients before starting migration, using each client's supported chain-configuration field (see the Nethermind formats above). Allow for generation, distribution, verification/import, and catch-up, plus at least 2 weeks of BAL replay and maintaining both trees before activation; do not simply set `S` to 2 weeks after `N`. Agree a client-approved procedure to postpone `S` across the network before it is reached if readiness checks or the testing window are incomplete.
