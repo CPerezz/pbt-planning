@@ -107,6 +107,7 @@ geth --datadir <datadir> --syncmode=full --override.genesis <genesis-with-S> \
 | `--pbt.import.anchor` | `N`, as a block hash (recommended) or number. Geth waits until `N` is canonical and finalized, then checks the artifacts against `N`'s header. It does not need its own MPT state at `N`. |
 | `--pbt.import.workers` | Optional, default `4`: parallel workers of the import. |
 | `--pbt.import.force` | Only if the datadir already holds a PBT anchored at another block (an earlier import). It replaces that tree. |
+| `--pbt.import.keep-artifacts` | Optional: keep the snapshot and the preimage file. By default geth empties each once it has read it. |
 
 The log shows `Starting binary tree import in the background`, then `Import complete` with `binaryRoot` and `anchor`. Meanwhile `debug_migrationProgress` returns `"Phase": "importing"`.
 
@@ -129,9 +130,10 @@ How it runs:
 If traffic is too light for the node's write buffer to fill, `P` can stay behind `N` for a long time; the log then repeats `Binary tree conversion waiting for a complete state at or past its anchor`. `--history.state=<n>` makes geth persist once it trails the head by 128+`n` blocks (the pbt-devnet uses `8`). It also limits the state history geth keeps.
 
 Both modes:
-- **Scratch:** written to `<datadir>/geth/pbt-import`, which must be on disk, not tmpfs. Each file is freed once used.
-- **Failure:** the node logs `Binary tree import failed`, `debug_migrationProgress` returns `"Phase": "importFailed"` with the error in `Binary.Error`, and everything the run wrote is wiped. The node keeps following on the MPT. Restart with the same flags to retry; a stopped run also starts over.
-- **After success:** keep the flags on later restarts. Finished work is detected and not repeated.
+- **Artifacts:** geth empties the preimage file and the snapshot once it has read them, to give their disk space back during the import (a self-migration empties the preimage file after its scan). Pass `--pbt.import.keep-artifacts` to keep them, e.g. to retry without downloading again. A file geth can't write (permissions, a read-only mount) is read and kept.
+- **Scratch:** written to `<datadir>/geth/pbt-import`, which must be on disk, not tmpfs. It is compressed, and each file is freed as it is read.
+- **Failure:** the node logs `Binary tree import failed`, `debug_migrationProgress` returns `"Phase": "importFailed"` with the error in `Binary.Error`, and everything the run wrote is wiped. The node keeps following on the MPT. Restart with the same flags to retry; a stopped run also starts over. Once a run has started consuming the artifacts, a retry needs fresh copies unless it ran with `--pbt.import.keep-artifacts`: geth refuses consumed files up front and names them.
+- **After success:** keep the flags on later restarts, and leave the emptied files where they are: geth checks that the paths exist at startup. Finished work is detected and not repeated.
 
 **Nethermind:** before restarting, update the fork's chainspec with the provisional PBT activation Unix timestamp (`S`, in seconds): use `config.binaryTrieTime` in a Geth-style genesis, or `params.eip8347TransitionTimestamp` in a Nethermind/Parity-style chainspec. The timestamp must be after genesis and the snapshot anchor `N`, and far enough in the future to complete import, catch-up, and the testing window. This selects MPT → PBT migration mode; the PBT flags and artifact paths alone do not select it. EIP-7928 (BALs) and EIP-6780 must activate before `S`. [Mode selection](https://github.com/NethermindEth/nethermind/blob/91ba4d29/src/Nethermind/Nethermind.State.Pbt/PbtPlugin.cs), [migration prerequisites](https://github.com/NethermindEth/nethermind/blob/91ba4d29/src/Nethermind/Nethermind.State.Pbt/PbtMigrationConfigValidator.cs), [Geth-style timestamp mapping](https://github.com/NethermindEth/nethermind/blob/91ba4d29/src/Nethermind/Nethermind.Specs/ChainSpecStyle/GethGenesisLoader.cs).
 
@@ -187,7 +189,7 @@ Set `S` only after attach, in the chain configuration or with `--override.binary
 
 <br>
 
-The Nethermind and Besu commands above use the source tested in the October 5 Hive run and the Hive shims. The Erigon commands use `binary-trie` at `06d0833e3d2`. The Geth commands use [`pbt`](https://github.com/CPerezz/go-ethereum/tree/pbt) as of `4f7e4b23c` (2026-10-19). Notes:
+The Nethermind and Besu commands above use the source tested in the October 5 Hive run and the Hive shims. The Erigon commands use `binary-trie` at `06d0833e3d2`. The Geth commands use [`pbt`](https://github.com/CPerezz/go-ethereum/tree/pbt) as of `84a12eff9` (2026-10-20). Notes:
 
 - Replace placeholders with the rehearsal paths and anchor, keeping the node's normal network, Engine API, and peer configuration.
 - Configure the same provisional PBT activation timestamp (`S`) across execution clients before starting migration, using each client's supported chain-configuration field (see the Nethermind formats above). Allow for generation, distribution, verification/import, and catch-up, plus at least 2 weeks of BAL replay and maintaining both trees before activation; do not simply set `S` to 2 weeks after `N`. Agree a client-approved procedure to postpone `S` across the network before it is reached if readiness checks or the testing window are incomplete.
