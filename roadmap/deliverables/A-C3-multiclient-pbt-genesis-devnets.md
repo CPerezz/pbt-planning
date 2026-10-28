@@ -48,13 +48,20 @@ feeds the H\* milestone.
 > seven live nodes), `delegate` (EIP-7702), `account`, `storage-add` (slots either side of
 > `HEADER_STORAGE_OFFSET`), `storage-del`.
 >
-> **What is still missing against the exit criteria below:** **Reth** (four clients, not
-> five — and Reth still has no PBT work of any kind), and a genesis generator that is a
+> **What is still missing against the exit criteria below:** **Reth participation** (four
+> clients in this September devnet evidence, not five), and a genesis generator that is a
 > shared spec rather than
 > [one fork's branch](https://github.com/CPerezz/ethereum-genesis-generator/tree/pbt).
 > Treat the devnet as the seed of this deliverable, not its completion. Note also that all
 > four implementations agree *using BLAKE3*, so this devnet's root agreement is evidence
 > about everything except the still-undecided `H`.
+
+**Targeted update, 2026-10-28:** Reth now has an
+[experimental PBT dev node](https://github.com/paradigmxyz/reth-oss/tree/e88254ac38703e617a68d0c1d6a1debd4e80cf81/examples/pbt-node).
+Its presence closes the earlier absence-of-code finding, but no new shared-devnet
+run was performed for this review. Reth's PBT-native staged/backfill and snap sync
+remain outside the backend's supported scope. The fifth-client participation and
+common-genesis exit criteria remain open.
 
 ## Scope — what ships
 - A PBT-genesis specification and genesis-state generator producing an initial

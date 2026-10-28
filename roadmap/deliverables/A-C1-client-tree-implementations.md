@@ -7,7 +7,7 @@
 | **Timeline** | 2026-09 → 2027-03 (6 months) |
 | **Migration phase** | Phase 1 — Prototypes & Evidence |
 | **Milestone alignment** | feeds H\* (2027-06) / fork S = I\* (2028-06) |
-| **Status** | **In flight** (as of 2026-09-17) — **four** implementations exist and are differentially tested (Nethermind joined the devnet 2026-09-14); only Reth missing, semantics still not uniform |
+| **Status** | **In flight** — September 17 evidence covers four devnet clients; a targeted October 28 review adds an experimental Reth implementation. Five-client root agreement and production readiness remain unproven. |
 
 ← [Back to roadmap](../README.md)
 
@@ -46,7 +46,7 @@ foundation every later devnet, sync, and migration deliverable builds on.
 ## Client coverage
 - EL: geth, Nethermind, Besu, Reth, Erigon (+ CL where relevant)
 
-### Where each client actually is (2026-09-17)
+### Client evidence (2026-09-17; Reth updated 2026-10-28)
 
 | Client | Branch | State |
 |---|---|---|
@@ -54,7 +54,7 @@ foundation every later devnet, sync, and migration deliverable builds on.
 | **Erigon** | [`erigontech/erigon@binary-trie`](https://github.com/erigontech/erigon/tree/binary-trie) | `PBinPatriciaHashed` commitment engine behind `--experimental.bin-commitment`, off by default, in the **upstream** repo. **67 of 70** EIP-8297 fixtures pass; the three failures and two deletion caveats are deliberate divergences (see risks). Tracking issue [#23389](https://github.com/erigontech/erigon/issues/23389). |
 | **Besu** | [`matkt/besu@glamsterdam-devnet-8-pbt`](https://github.com/matkt/besu/tree/glamsterdam-devnet-8-pbt) + [`besu-eth/besu-stateless@feat/partitioned-binary-trie`](https://github.com/besu-eth/besu-stateless/tree/feat/partitioned-binary-trie) | Tree in the `besu-stateless` library ([PR #92](https://github.com/besu-eth/besu-stateless/pull/92)), enabled with `--data-storage-format=BINARY`. Besu has moved org to `besu-eth/besu`. |
 | **Nethermind** | [`pbt-state`](https://github.com/NethermindEth/nethermind/tree/pbt-state) | **Changed materially since the last sync.** Draft [#12573](https://github.com/NethermindEth/nethermind/pull/12573) still carries the **"prototype — not for merge"** warning, but the branch is now the **most actively developed in the field** (daily commits through 2026-09-17: parallel trie-updater folds, node groups keyed by zero-padded path + nibble count, RocksDB tuning, and a correctness fix counting delegation leaves as code references on rebuild), and it **joined the devnet on 2026-09-14** — running in *both* the tree-at-genesis and migration profiles via `--Pbt.Enabled=true`. Its storage-layout evidence (depth-4-interleave fastest; root calculation 3 ms → 11 ms) still stands. **Treat the not-for-merge label as stale relative to the branch**, and resolve which it is: the roadmap cannot count a client that disowns its own implementation. |
-| **Reth** | — | Still nothing: no branch, issue or PR matching PBT / EIP-8297 as of 2026-09-17. The sole remaining gap against the five-client exit criterion. |
+| **Reth** | [`paradigmxyz/reth-oss@feat/pbt`](https://github.com/paradigmxyz/reth-oss/tree/e88254ac38703e617a68d0c1d6a1debd4e80cf81) | Experimental binary tree/state embedding, pinned EELS vectors, execution-bundle application, tagged artifacts with dual-root verification, BAL replay, checkpoints, and a fork-aware engine/dev node. Full-state in-memory checkpoints are a devnet backend; PBT-native sync and participation in the shared five-client root-agreement harness are not demonstrated. See the [targeted source review](../../knowledge-base/07-sources.md#reth-targeted-review--2026-10-28). |
 
 **Cross-client root agreement is already being measured**, ahead of
 [A-C3](A-C3-multiclient-pbt-genesis-devnets.md): the
@@ -108,10 +108,11 @@ so none of this agreement is evidence about the undecided `H`.
   current one (9000 / 2100 / 12000 / 11616), and does not subtract `WARM_ACCESS` from the
   EIP-2930 access-list constants — 100 gas of drift on every access-list transaction. See
   [knowledge-base/07-sources.md](../../knowledge-base/07-sources.md).
-- **Two clients are missing and one is disposable.** Reth has no PBT work at all, and
-  Nethermind's is labelled throwaway. The five-client exit criterion below is a long way
-  from three-plus-a-prototype, and the shortfall is in *production-track* commitments, not
-  in code volume.
+- **Prototype code does not satisfy the production-track or five-client gate.** Reth's
+  October branch closes the absence-of-code finding, but still needs production storage,
+  sync integration, and independent cross-client evidence. Nethermind's September
+  prototype label is dated evidence and needs a separate refresh. Keep the exit criteria
+  open until those commitments and results are available.
 
 ## References
 - [knowledge-base/01-overview.md](../../knowledge-base/01-overview.md)

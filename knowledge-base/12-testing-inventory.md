@@ -29,6 +29,22 @@ By the 2026-09-17 snapshot, the tree-at-genesis devnet had seven nodes from four
 
 A root mismatch must compare reports for the **same block hash**, including across reorgs. Test harnesses should deliberately inject wrong roots and malformed artifacts to prove that a green result can fail for the right reason.
 
+## Targeted Reth inventory — 2026-10-28
+
+The [reviewed Reth branch](07-sources.md#reth-targeted-review--2026-10-28)
+contains tree/state, conformance, execution-bundle, artifact, replay and persistence
+test suites, plus engine/dev-node tests for transfers, contracts, storage, branches,
+activation and missing checkpoints. These are source-level coverage findings,
+not a claim that every suite passed on every platform. Use a supported Unix
+environment for node and durable-checkpoint validation.
+
+The conformance vectors pin the EELS JSON set at `09d2088`: nine tree-root
+cases, 21 whole-state roots, key derivation, four code-chunking cases and three
+basic-data encodings. They do not replace the 70 blockchain fixtures or prove
+agreement with the four-client shared devnet. Native sync, populated-state
+multi-client migration, realistic memory/disk measurements and restart/recovery
+under extended non-finality remain required evidence.
+
 ## Highest-priority gaps
 
 1. **Release the EIP-8297 fixtures and run them together.** The reference branch's fixture-release workflow lacked a `binary_tree` feature, so client self-reports were not reproducible as one cross-client result. Resolve provider-specific fixture assumptions before treating it as a normative oracle.

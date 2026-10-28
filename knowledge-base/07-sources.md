@@ -30,6 +30,32 @@ EIP-8347's preimage file changed in [PR #12215](https://github.com/ethereum/EIPs
 
 For each implementation, inspect the branch/PR and its commit date before updating a status statement. A devnet pass shows what its workloads and evidence contracts checked, not full spec conformance. BLAKE3 root agreement among clients also does not settle EIP-8297's hash choice.
 
+## Reth targeted review — 2026-10-28
+
+Reviewed [`paradigmxyz/reth-oss@feat/pbt`, commit
+`e88254ac38703e617a68d0c1d6a1debd4e80cf81`](https://github.com/paradigmxyz/reth-oss/tree/e88254ac38703e617a68d0c1d6a1debd4e80cf81).
+This is a targeted source review; it does not refresh the September findings for
+the other clients or establish shared-devnet participation.
+
+- [`crates/trie/pbt`](https://github.com/paradigmxyz/reth-oss/tree/e88254ac38703e617a68d0c1d6a1debd4e80cf81/crates/trie/pbt)
+  implements the tree, state embedding and proofs, with optional execution,
+  migration, BAL replay, and persistence modules. Migration uses tagged snapshot
+  records, so the older RLP snapshot description elsewhere in this dated knowledge
+  base must not be used as the implementation contract.
+- [`testdata/README.md`](https://github.com/paradigmxyz/reth-oss/blob/e88254ac38703e617a68d0c1d6a1debd4e80cf81/crates/trie/pbt/testdata/README.md)
+  pins EELS vectors at `09d2088cf9f338e660cb04f948653baf544b7ba6`.
+  These cover tree/state roots and encoding; they are not the full EEST execution
+  fixture release or a cross-client test run.
+- The engine's `PbtStateRootStrategy` and
+  [`examples/pbt-node`](https://github.com/paradigmxyz/reth-oss/tree/e88254ac38703e617a68d0c1d6a1debd4e80cf81/examples/pbt-node)
+  provide timestamp activation, shadow commitments and payload building while
+  retaining MPT updates. The example disables the stock MPT proof RPC.
+- The implementation documents in-memory account indexes, full-state checkpoint
+  rewrites and unpruned durable checkpoints. PBT-native staged/backfill and snap
+  sync, automated anchor/snapshot/BAL retrieval, finalized checkpoint pruning,
+  and public PBT proof RPC remain follow-up work. Do not treat this prototype as
+  production or mainnet-scale readiness.
+
 ## Non-public inputs
 
 A July 27–29, 2026 CL-side discussion covered candidate transports for signed attester shadow roots, including gossip, subnets, request/response, ENR, and consensus-field changes. It was a design conversation, not a specification or decision. [Attester telemetry](11-attester-telemetry-transport.md) summarizes its technical questions without attributing private comments by name. EIP-8347 remains authoritative on what is actually specified.

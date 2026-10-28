@@ -44,12 +44,16 @@ See the [testing inventory](knowledge-base/12-testing-inventory.md) for coverage
 
 Development branches recorded in the **2026-09-17 source review**:
 
+The Reth row is a targeted addition reviewed on **2026-10-28**; the other
+client findings retain their September review date.
+
 | Client | Implementation |
 |--------|----------------|
 | geth | [`CPerezz/go-ethereum@pbt`](https://github.com/CPerezz/go-ethereum/tree/pbt) |
 | Erigon | [`erigontech/erigon@binary-trie`](https://github.com/erigontech/erigon/tree/binary-trie) |
 | Nethermind | [`NethermindEth/nethermind@pbt-state`](https://github.com/NethermindEth/nethermind/tree/pbt-state) |
 | Besu | [`matkt/besu@glamsterdam-devnet-8-pbt`](https://github.com/matkt/besu/tree/glamsterdam-devnet-8-pbt) and the [`besu-stateless` PBT library](https://github.com/besu-eth/besu-stateless/tree/feat/partitioned-binary-trie) |
+| Reth | [`paradigmxyz/reth-oss@feat/pbt`](https://github.com/paradigmxyz/reth-oss/tree/feat/pbt), experimental tree, migration/replay APIs, and dev node; see [reviewed scope and gaps](knowledge-base/07-sources.md#reth-targeted-review--2026-10-28) |
 
 These are reference links, not a reproducible build configuration. The Hive suite uses
 its own client selections, including a different geth branch. For upstream PRs, known

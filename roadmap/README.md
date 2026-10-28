@@ -19,6 +19,16 @@ This document is the *when* and *who*.
 
 ## Implementation status snapshot
 
+**Targeted Reth update, 2026-10-28:**
+[`reth-oss@feat/pbt`](https://github.com/paradigmxyz/reth-oss/tree/e88254ac38703e617a68d0c1d6a1debd4e80cf81)
+now contains an experimental tree, artifact verification, BAL replay, checkpoints,
+and an engine/dev-node integration. This supersedes the September finding that
+Reth had no implementation. It does **not** establish fifth-client devnet
+participation, a production database, PBT-native sync, or mainnet-scale readiness.
+See the [source review](../knowledge-base/07-sources.md#reth-targeted-review--2026-10-28).
+The September snapshot below is retained with its original date; other clients
+were not re-audited in this targeted update.
+
 *Verified against live sources on **2026-09-17**. Detail and caveats in
 [knowledge-base/07-sources.md](../knowledge-base/07-sources.md).*
 
@@ -33,7 +43,7 @@ devnet work is materially in flight while several deliverables below still read 
 |---|---|
 | **Specs** | **Unchanged this sync.** EIP-8297 still at its 2026-08-06 revision; EIP-8347 still at 2026-08-25 (`requires: 7523, 7928, 8159, 8297`). Both still `Draft`; neither has a `Review` or freeze date. The PBT gas-repricing EIP is **still undrafted**. |
 | **Reference impl. / tests** | `execution-specs@projects/binary-trie` carries the EIP-8297 implementation and test suite, proposed upstream into `forks/amsterdam` (draft [PR #3207](https://github.com/ethereum/execution-specs/pull/3207)). **Tip unchanged since 2026-08-13 — now five weeks quiet**, and still **no EIP-8347 migration code on it.** This is now the slowest-moving link in the chain. |
-| **Clients** | **geth** (`CPerezz/go-ethereum@pbt`) — tree + the only complete migration, but quiet since 2026-09-07; **Erigon** (`erigontech/erigon@binary-trie`, upstream repo) — commitment engine, 67/70 EIP-8297 fixtures, active daily, **mainnet state conversion listed in progress**; **Nethermind** (`pbt-state`) — **joined the devnet 2026-09-14** and is now the most active branch in the field, though its PR still says prototype/not-for-merge; **Besu** (`matkt/besu@glamsterdam-devnet-8-pbt` + `besu-eth/besu-stateless`) — tree + migration, weakest introspection; **Reth** — still nothing. |
+| **Clients** | **geth** (`CPerezz/go-ethereum@pbt`) — tree + the only complete migration, but quiet since 2026-09-07; **Erigon** (`erigontech/erigon@binary-trie`, upstream repo) — commitment engine, 67/70 EIP-8297 fixtures, active daily, **mainnet state conversion listed in progress**; **Nethermind** (`pbt-state`) — **joined the devnet 2026-09-14** and is now the most active branch in the field, though its PR still says prototype/not-for-merge; **Besu** (`matkt/besu@glamsterdam-devnet-8-pbt` + `besu-eth/besu-stateless`) — tree + migration, weakest introspection; **Reth** — absent at this September check; superseded by the October update above. |
 | **Devnets** | Tree-at-genesis devnet now runs **seven nodes across four implementations** (was six across three), with deliberate reorgs and six state-stranding scenarios. The **migration devnet went multi-client**: five participants across the same four clients, each migrating by a *different* mechanism, with partitions before/across/after the fork block and a judge scoring straddle rewinds, heal deadlines, orphan cleanup and shadow-root agreement. |
 | **Not yet demonstrated** | Independent producers emitting **bit-identical snapshots** (the September 23 update below records preimage agreement); conversion at **mainnet scale** (Erigon has it in progress); any migration run on **non-trivial state** — M1 (empty state, 2026-08-27) is still the last accepted gate; the shadow-root **CL carrier** (geth's `debug_shadowRoots` is an EL debug feed, not the telemetry spec). |
 
